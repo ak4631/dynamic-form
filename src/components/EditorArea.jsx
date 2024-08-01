@@ -25,7 +25,7 @@ const EditorArea = () => {
         x: 0,
         y: Infinity,
         w: 4,
-        h: 2,
+        h: 3,
         content: type,
         type,
       },
@@ -92,11 +92,13 @@ const EditorArea = () => {
         rowHeight={30}
         width={1200}
         onLayoutChange={onLayoutChange}
+        // verticalCompact={false}
+        preventCollision={true}
       >
         {layout.map((item) => {
           const typeVal = item.i.split("_")[1];
           return (
-            <div key={item.i} className="draggable-item">
+            <div key={item.i} className="draggable-item border-2 border-red-500 h-{100px}">
               {renderComponent(typeVal, `Field ${item.i.split("_")[0]}`)}
             </div>
           );
