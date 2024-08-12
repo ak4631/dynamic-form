@@ -1,6 +1,7 @@
 const API_URL = "http://localhost:3000";
 
 export const saveForm = async (layout) => {
+  console.log(JSON.stringify({ layout }))
   const response = await fetch(`${API_URL}/save`, {
     method: "POST",
     headers: {
