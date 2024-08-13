@@ -5,6 +5,8 @@ const EditTextBox = ({ item, onSave }) => {
   const [placeholder, setPlaceholder] = useState(item.placeholder || "Placeholder");
   const [required, setRequired] = useState(item.required || false);
 
+  console.log(item);
+
   const handleSave = () => {
     onSave({
       ...item,

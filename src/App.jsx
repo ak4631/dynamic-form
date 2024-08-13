@@ -12,9 +12,10 @@ const App = () => {
     setIsPreview(!isPreview);
   };
 
-  const onLayoutChange = (layout) => {
-
-    setLayout(layout);
+  const onLayoutChange = (newLayout) => {
+    if (JSON.stringify(newLayout) !== JSON.stringify(layout)) {
+      setLayout(newLayout);
+    }
   };
 
   // const handleSave = async () => {
@@ -51,12 +52,11 @@ const App = () => {
       <button onClick={() => handleLoad(prompt("Enter form ID to load:"))}>
         Load
       </button>
-      {isPreview ? (
+      {/* {isPreview ? (
         <Preview layout={layout} />
-      ) : (
-        // <EditorArea onLayoutChange={onLayoutChange} />
+      ) : ( */}
         <EditorArea layoutProp={layout} onLayoutChange={onLayoutChange} />
-      )}
+      {/* )} */}
     </div>
   );
 };

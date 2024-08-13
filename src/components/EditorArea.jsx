@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import GridLayout from "react-grid-layout";
 import "react-grid-layout/css/styles.css";
 import "react-resizable/css/styles.css";
@@ -9,6 +9,7 @@ import Phone from "./Phone";
 import Email from "./Email";
 import SideBar from "./SideBar/SideBar";
 import EditTextBox from "./DetailsTab/EditTextBox";
+import { isEqual } from "lodash";
 
 const EditorArea = ({ layoutProp, onLayoutChange }) => {
   const [layout, setLayout] = useState([]);
@@ -19,16 +20,16 @@ const EditorArea = ({ layoutProp, onLayoutChange }) => {
     setLayout(layoutProp);
   }, [layoutProp]);
 
-  const addComponent = (type, x, y) => {
-    const newCounter = layout.length + 1;
-    let height = 2;
-    if (type === "Textarea") {
-      height = 4;
-    } else if (type === "Checkbox") {
-      height = 1;
-    } else {
-      height = 2.5;
+  useEffect(() => {
+    if (selectedItem) {
+      setSideLayout(<EditTextBox item={selectedItem} onSave={handleSaveUpdate} />);
     }
+  }, [selectedItem]);
+
+  const addComponent = useCallback((type, x, y) => {
+    const newCounter = layout.length + 1;
+    let height = type === "Textarea" ? 4 : type === "Checkbox" ? 1 : 2.5;
+
     const newLayout = [
       ...layout,
       {
@@ -43,103 +44,114 @@ const EditorArea = ({ layoutProp, onLayoutChange }) => {
         type,
         label: `Label ${newCounter}`,
         placeholder: `Placeholder ${newCounter}`,
-        required: false,  // Default value for required
+        required: false,
       },
     ];
-    setLayout(newLayout);
-    onLayoutChange(newLayout);
-  };
+    if (!isEqual(newLayout, layout)) {
+      setLayout(newLayout);
+      onLayoutChange(newLayout);
+    }
+  }, [layout, onLayoutChange]);
 
-  const handleDrop = (event) => {
+  const handleDrop = useCallback((event) => {
     event.preventDefault();
     const type = event.dataTransfer.getData("text/plain");
     const { offsetX, offsetY } = event.nativeEvent;
     const layoutRect = event.target.getBoundingClientRect();
-    const x = Math.floor((offsetX - layoutRect.left) / 100); // Adjust for grid column width
-    const y = Math.floor((offsetY - layoutRect.top) / 30); // Adjust for grid row height
+    const x = Math.floor((offsetX - layoutRect.left) / 100);
+    const y = Math.floor((offsetY - layoutRect.top) / 30);
     addComponent(type, x, y);
-  };
+  }, [addComponent]);
 
-  const handleDelete = (itemId) => {
+  const handleDelete = useCallback((itemId) => {
     const updatedLayout = layout.filter(item => item.i !== itemId);
     setLayout(updatedLayout);
     onLayoutChange(updatedLayout);
-  };
+  }, [layout, onLayoutChange]);
 
-  const handleUpdate = (item) => {
+  const handleUpdate = useCallback((item) => {
     setSelectedItem(item);
-    setSideLayout(<EditTextBox item={item} onSave={handleSaveUpdate} />);
-  };
+  }, []);
 
-  const handleSaveUpdate = (updatedItem) => {
-    const updatedLayout = layout.map(item => 
-      item.i === updatedItem.i ? updatedItem : item
-    );
-    console.log(updatedLayout)
-    setLayout(updatedLayout);
-    onLayoutChange(updatedLayout);
-
+    const handleSaveUpdate = (updatedItem) => {
+    // Ensure this only updates the necessary state
+      setLayout((prevLayout) => {
+        const updatedLayout = prevLayout.map(item =>
+          item.i === updatedItem.i ? updatedItem : item
+        );
+        onLayoutChange(updatedLayout); // Notify parent about the update
+        return updatedLayout;
+    });
     setSelectedItem(null); // Close the edit panel
+    setSideLayout(null); // Close the edit panel
   };
 
-  const renderComponent = (type, item) => {
+  const renderComponent = useCallback((type, item) => {
     const { i, label, placeholder, required } = item;
     switch (type) {
       case "Textbox":
         return <Textbox id={i} label={label} placeholder={placeholder} required={required} />;
       case "Textarea":
-        return <Textarea name={item.name} />;
+        return <Textarea id={i} placeholder={placeholder} />;
       case "Checkbox":
-        return <Checkbox name={item.name} />;
+        return <Checkbox id={i} />;
       case "Phone":
-        return <Phone name={item.name} />;
+        return <Phone id={i} />;
       case "Email":
-        return <Email name={item.name} />;
+        return <Email id={i} />;
       default:
         return null;
     }
-  };
+  }, []);
+
+  const layoutItems = useMemo(() => (
+    layout.map((item) => {
+      const typeVal = item.i.split("_")[1];
+      return (
+        <div key={item.i} className="draggable-item border-2 border-red-500 relative mb-2">
+          <button
+            onClick={() => handleUpdate(item)}
+            className="absolute top-0 right-10 mt-1 mr-1 text-blue-500 p-1 rounded-full hover:text-blue-700"
+            title="Update"
+          >
+            <i className="fas fa-edit">Update</i>
+          </button>
+
+          <button
+            onClick={() => handleDelete(item.i)}
+            className="absolute top-0 right-0 mt-1 mr-2 text-red-500 p-1 rounded-full hover:text-red-700"
+            title="Delete"
+          >
+            <i className="fas fa-times">Delete</i>
+          </button>
+          
+          {renderComponent(typeVal, item)}
+        </div>
+      );
+    })
+  ), [layout, handleUpdate, handleDelete, renderComponent]);
 
   return (
     <div className="flex border-2 border-solid">
       <div className="w-1/4 bg-gray-200 p-4">
         <SideBar />
       </div>
-      <div className="border-2 border-solid p-4 w-[57%] h-screen overflow-y-scroll" onDrop={handleDrop} onDragOver={(e) => e.preventDefault()}>
-        <GridLayout
+      {/* <GridLayout
           className="layout border-2 bg-slate-300 border-blue-600"
           layout={layout}
           cols={12}
           rowHeight={30}
-          width={1200}
+          width={900}
           onLayoutChange={onLayoutChange}
-        >
-          {layout.map((item) => {
-            const typeVal = item.i.split("_")[1];
-            return (
-              <div key={item.i} className="draggable-item border-2 border-red-500 relative mb-2">
-                <button
-                  onClick={() => handleUpdate(item)}
-                  className="absolute top-0 right-10 mt-1 mr-1 text-blue-500 p-1 rounded-full hover:text-blue-700"
-                  title="Update"
-                >
-                  <i className="fas fa-edit"></i>
-                </button>
-
-                <button
-                  onClick={() => handleDelete(item.i)}
-                  className="absolute top-0 right-0 mt-1 mr-2 text-red-500 p-1 rounded-full hover:text-red-700"
-                  title="Delete"
-                >
-                  <i className="fas fa-times"></i>
-                </button>
-
-                {renderComponent(typeVal, item)}
-              </div>
-            );
-          })}
-        </GridLayout>
+        > */}
+      <div
+        className="border-2 border-solid p-4 w-[57%] h-screen overflow-y-scroll"
+        onDrop={handleDrop}
+        onDragOver={(e) => e.preventDefault()}
+      >
+        {layoutItems}
       </div>
+      {/* </GridLayout> */}
       <div className="w-1/4 bg-gray-100 p-4">
         {sideLayout}
       </div>
