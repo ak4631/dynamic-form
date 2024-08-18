@@ -187,63 +187,58 @@ const EditorArea = ({ layoutProp, onLayoutChange }) => {
   };
 
   const setPositions = (id, e, direction) => {
-    // const { position } = handleDragOrResize(id, direction, {});
+    const newPosition = { x: parseInt(direction.x), y: parseInt(direction.y) };
+    
+    // Get the size of the current item being moved
+    const currentItem = layout.find(item => item.i === id);
+    const newSize = { width: currentItem.w, height: currentItem.h };
   
-    setLayout(prevLayout =>
-      prevLayout.map(item =>
-        item.i === id
-          ? { ...item, x: position.x, y: position.y }
-          : item
-      )
-    );
+    // Check for collisions with other items
+    const hasCollision = layout.some(item => {
+      if (item.i === id) return false; // Skip itself
+      const otherRect = { x: item.x, y: item.y, width: item.w, height: item.h };
+      const newRect = { x: newPosition.x, y: newPosition.y, width: newSize.width, height: newSize.height };
+      return haveIntersection(newRect, otherRect);
+    });
+  
+    if (!hasCollision) {
+      // Update layout only if no collision
+      console.log(hasCollision);
+      setLayout(prevLayout =>
+        prevLayout.map(item =>
+          item.i === id
+            ? { ...item, x: newPosition.x, y: newPosition.y } // Update the position of the item
+            : item // Leave other items unchanged
+        )
+      );
+    }
   };
   
   const setSize = (id, e, direction, ref, delta, position) => {
-    const { position: newPosition, size: newSize } = handleDragOrResize(id, direction, { width: ref.offsetWidth, height: ref.offsetHeight });
+    const newSize = { width: parseInt(ref.style.width), height: parseInt(ref.style.height) };
+    const currentItem = layout.find(item => item.i === id);
+    const newPosition = { x: position.x, y: position.y };
   
-    setLayout(prevLayout =>
-      prevLayout.map(item =>
-        item.i === id
-          ? { ...item, w: newSize.width, h: newSize.height, x: newPosition.x, y: newPosition.y }
-          : item
-      )
-    );
+    // Check for collisions with other items
+    const hasCollision = layout.some(item => {
+      if (item.i === id) return false; // Skip itself
+      const otherRect = { x: item.x, y: item.y, width: item.w, height: item.h };
+      const newRect = { x: newPosition.x, y: newPosition.y, width: newSize.width, height: newSize.height };
+      return haveIntersection(newRect, otherRect);
+    });
+  
+    if (!hasCollision) {
+      // Update layout only if no collision
+      setLayout(prevLayout =>
+        prevLayout.map(item =>
+          item.i === id
+            ? { ...item, w: newSize.width, h: newSize.height, x: newPosition.x, y: newPosition.y } // Update size and position
+            : item // Leave other items unchanged
+        )
+      );
+    }
   };
-  
-  
-  const handleDragOrResize = (id, direction, size) => {
-    const item = layout.find(item => item.i === id);
-  
-    if (!item) return;
-  
-    const newPosition = {
-      x: item.x + direction.x,
-      y: item.y + direction.y
-    };
-  
-    const newSize = {
-      width: size.width || item.w,
-      height: size.height || item.h
-    };
-  
-    // Constrain the new position and size if needed
-    const maxWidth = 1000; // Adjust according to your container size
-    const maxHeight = 1000; // Adjust according to your container size
-  
-    return {
-      position: {
-        x: Math.max(0, Math.min(newPosition.x, maxWidth - newSize.width)),
-        y: Math.max(0, Math.min(newPosition.y, maxHeight - newSize.height))
-      },
-      size: {
-        width: Math.max(100, Math.min(newSize.width, maxWidth)),
-        height: Math.max(100, Math.min(newSize.height, maxHeight))
-      }
-    };
-  };
-  
 
-  
 
 //   const setPositions = (id, e, direction) => {
 //     const { position, size } = handleDragOrResize(id, { x: direction.x, y: direction.y }, size);
@@ -275,37 +270,36 @@ const EditorArea = ({ layoutProp, onLayoutChange }) => {
       const typeVal = item.i.split("_")[1];
       return(
         <Rnd
-  style={{ backgroundColor: 'black', margin: '8px' }}
-  size={{ width: item.w, height: item.h }}
-  position={{ x: item.x, y: item.y }}
-  onDragStop={(e, data) => setPositions(item.i, data, {})}
-  onResizeStop={(e, direction, ref, delta, position) => setSize(item.i, e, direction, ref, delta, position)}
-  minWidth={100}
-  minHeight={100}
-  bounds=".parent-class"
-  key={item.i}
->
-  <div key={item.i} className="draggable-item relative mb-2">
-    <button
-      onClick={() => handleUpdate(item)}
-      className="absolute top-0 right-10 mt-1 mr-1 text-blue-500 p-1 rounded-full hover:text-blue-700"
-      title="Update"
+        style={{backgroundColor:"black",margin:"8px"}}
+        size={{width:item.w,height:item.h}}
+        position={{x:item.x,y:item.y}}
+        onDragStop={(e,direction)=>setPositions(item.i,e,direction)}
+        onResizeStop={(e,direction,ref,delta,position)=>setSize(item.i,e,direction,ref,delta,position)}
+        minWidth={"100px"}
+        minHeight={"100px"}
+        bounds={".parent-class"}
+        key={item.i}
     >
-      <i className="fas fa-edit">Update</i>
-    </button>
+        <div key={item.i} className="draggable-item relative mb-2">
+          <button
+            onClick={() => handleUpdate(item)}
+            className="absolute top-0 right-10 mt-1 mr-1 text-blue-500 p-1 rounded-full hover:text-blue-700"
+            title="Update"
+          >
+            <i className="fas fa-edit">Update</i>
+          </button>
 
-    <button
-      onClick={() => handleDelete(item.i)}
-      className="absolute top-0 right-0 mt-1 mr-2 text-red-500 p-1 rounded-full hover:text-red-700"
-      title="Delete"
-    >
-      <i className="fas fa-times">Delete</i>
-    </button>
-
-    {renderComponent(typeVal, item)}
-  </div>
-</Rnd>
-
+          <button
+            onClick={() => handleDelete(item.i)}
+            className="absolute top-0 right-0 mt-1 mr-2 text-red-500 p-1 rounded-full hover:text-red-700"
+            title="Delete"
+          >
+            <i className="fas fa-times">Delete</i>
+          </button>
+          
+          {renderComponent(typeVal, item)}
+        </div>
+        </Rnd>
       );
     })
   ), [layout, handleUpdate, handleDelete, renderComponent]);

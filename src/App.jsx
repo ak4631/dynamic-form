@@ -4,6 +4,8 @@ import Preview from "./components/Preview";
 import { saveForm, loadForm } from "./api";
 import DragFromOutsideLayout from "./components/TestArea";
 
+
+
 const App = () => {
   const [isPreview, setIsPreview] = useState(false);
   const [layout, setLayout] = useState([]);
@@ -55,7 +57,11 @@ const App = () => {
       {/* {isPreview ? (
         <Preview layout={layout} />
       ) : ( */}
+
+        {/* <EditorArea1/>       */}
+  
         <EditorArea layoutProp={layout} onLayoutChange={onLayoutChange} />
+      
       {/* )} */}
     </div>
   );
